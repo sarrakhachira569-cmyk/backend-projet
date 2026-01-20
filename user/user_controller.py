@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from database import engine, Base, SessionLocal
 from .model import User
-from .schema import Create_user
+from .schema import Create_user,User_login
+from passlib.context import CryptContext
 
 router = APIRouter(
     prefix="/users",
@@ -20,6 +21,24 @@ def get_db():
     finally:
         db.close()
 # Create user
+
+pwd_context = CryptContext(schemes=["argon2"],
+ deprecated="auto")
+
+def hashPassword(password: str) -> str:
+    return pwd_context.hash(password)
+def verifyPassword(password: str, hashed_password: str) :
+    return pwd_context.verify(password, hashed_password)
+
+@router.post("/login")    
+def Loginuser(userLogin:User_login,  db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == userLogin.email).first()
+    print(user)
+    if not user:
+        return False
+    if not verifyPassword(userLogin.password, user.password):
+        return False
+    return user        
 @router.post("/create")
 def create_user(user_data: Create_user, db: Session = Depends(get_db)):
     # Vérifier si email existe déjà
@@ -29,7 +48,7 @@ def create_user(user_data: Create_user, db: Session = Depends(get_db)):
     user = User(
         name=user_data.name,
         email=user_data.email,
-        password=user_data.password,  # يمكنك هنا تعمل hash إذا تحب
+        password=hashPassword(user_data.password),  # يمكنك هنا تعمل hash إذا تحب
         role=user_data.role,
         is_active=user_data.is_active
     )
@@ -78,3 +97,4 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
     db.delete(user)
     db.commit()
     return None
+    
