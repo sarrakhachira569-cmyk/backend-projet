@@ -7,6 +7,10 @@ class Create_user(BaseModel):
     password: str
     role: Optional[str] = "user"
     is_active: Optional[bool] = True
+class User_login(BaseModel):
+    email:EmailStr
+    password: str
+
 
 	
 	
