@@ -4,6 +4,8 @@ from database import engine, Base, SessionLocal
 from .model import User
 from .schema import Create_user,User_login
 from passlib.context import CryptContext
+from .securité import create_access_token
+from datetime import timedelta
 
 router = APIRouter(
     prefix="/users",
@@ -38,7 +40,15 @@ def Loginuser(userLogin:User_login,  db: Session = Depends(get_db)):
         return False
     if not verifyPassword(userLogin.password, user.password):
         return False
-    return user        
+    access_token = create_access_token(
+        data={"sub": user.email, "user_id": user.id},
+        expires_delta=timedelta(minutes=30)
+    )
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user":user
+    }
 @router.post("/create")
 def create_user(user_data: Create_user, db: Session = Depends(get_db)):
     # Vérifier si email existe déjà
